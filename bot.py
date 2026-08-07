@@ -1,4 +1,6 @@
 import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import discord
 from discord.ext import commands
 
@@ -9,6 +11,30 @@ TRIGGER_WORD = "รักพี่พีพี่รูซิวพี่เซ�
 WRONG_MSG = "มึงพิมไม่ถูกอีโง่"
 CORRECT_MSG = "มึงได้ยศแล้ว ยินดีต้อนรับสู่โหนกระเจี๊ยว"
 # -----------------------------------
+
+# ---------- HTTP server เล็กๆ ให้ Render เห็นว่ามี port เปิด + ให้ UptimeRobot ping ----------
+class PingHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+
+    def log_message(self, format, *args):
+        pass  # ปิด log ของ http server กันรก console
+
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), PingHandler)
+    print(f"HTTP ping server listening on port {port}")
+    server.serve_forever()
+
+
+def keep_alive():
+    t = threading.Thread(target=run_web, daemon=True)
+    t.start()
+# -----------------------------------------------------------------------------------------------
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -52,4 +78,5 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
+keep_alive()
 bot.run(os.getenv("DISCORD_TOKEN"))
